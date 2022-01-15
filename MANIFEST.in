@@ -1,0 +1,4 @@
+include README.md
+include idom_plotly/bundle.js
+include idom_plotly/py.typed
+include LICENSE
