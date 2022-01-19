@@ -2,3 +2,8 @@ twine
 pytest
 selenium
 idom[testing,stable]
+
+# testing dependencies
+pandas
+mypy
+flake8

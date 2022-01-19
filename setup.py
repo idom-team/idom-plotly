@@ -25,7 +25,7 @@ package_dir = os.path.join(here, name)
 package = {
     "name": name,
     "python_requires": ">=3.8",
-    "install_requires": ["idom>=0.33.1"],
+    "install_requires": ["idom>=0.33.1", "plotly"],
     "packages": find_packages(exclude=["tests*"]),
     "description": "Plotly figures as a custom component for IDOM",
     "author": "Ryan Morshead",
