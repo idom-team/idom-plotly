@@ -45,6 +45,10 @@ def Plot(
     if event_handlers:
         props.update(event_handlers)
 
+    for reserved_prop in ["onUpdate", "onInitialized"]:
+        if reserved_prop in props:
+            raise ValueError(f"{reserved_prop!r} is reserved and cannot be assigned.")
+
     return _Plot(props)
 
 

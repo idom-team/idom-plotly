@@ -1,4 +1,4 @@
-export { default as Plot } from "react-plotly.js";
+import { default as PlotlyPlot } from "react-plotly.js";
 
 import React from "react";
 import ReactDOM from "react-dom";
@@ -9,10 +9,28 @@ const html = htm.bind(React.createElement);
 export function bind(node, config) {
   return {
     create: (component, props, children) =>
-      React.createElement(component, wrapEventHandlers(props), ...children),
+      React.createElement(component, props, ...children),
     render: (element) => ReactDOM.render(element, node),
     unmount: () => ReactDOM.unmountComponentAtNode(node),
   };
+}
+
+export function Plot({ onRelayout, ...props }) {
+  const figure = React.useRef(null);
+
+  let onUpdate, onInitialized;
+  onUpdate = onInitialized = (newFigure) => {
+    figure.current = newFigure;
+  };
+
+  return React.createElement(PlotlyPlot, {
+    ...wrapEventHandlers(props),
+    onUpdate,
+    onInitialized,
+    onRelayout: makeJsonSafeEventHandler(
+      makeHandlerWithFigureData(onRelayout, figure)
+    ),
+  });
 }
 
 function wrapEventHandlers(props) {
@@ -25,12 +43,34 @@ function wrapEventHandlers(props) {
   return newProps;
 }
 
-function makeJsonSafeEventHandler(oldHandler) {
+function makeJsonSafeEventHandler(oldHandler, figure) {
   return function safeEventHandler(data) {
+    if (!data) {
+      oldHandler(null, null);
+      return;
+    }
+
     const event = data.event;
     delete data.event;
+
     oldHandler(event, serializePlotlyEvent(data));
+  };
+}
+
+function makeHandlerWithFigureData(oldHandler, figureRef) {
+  return function eventHandler(data) {
+    oldHandler(event, {
+      ...data,
+      figure: serializePlotlyFigure(figureRef.current),
+    });
+  };
+}
+
+function serializePlotlyFigure(figure) {
+  if (!figure) {
+    return null;
   }
+  return { layout: figure.layout };
 }
 
 // issue: https://github.com/plotly/plotly.py/issues/3550
@@ -41,9 +81,8 @@ function serializePlotlyEvent(data) {
     points: buildPointsObject(data),
     device_state: buildInputDeviceStateObject(data),
     selector: buildSelectorObject(data),
-  }
+  };
 }
-
 
 function buildPointsObject(data) {
   var pointsObject;
@@ -55,8 +94,7 @@ function buildPointsObject(data) {
     var hasNestedPointObjects = true;
     for (let i = 0; i < numPoints; i++) {
       hasNestedPointObjects =
-        hasNestedPointObjects &&
-        pointObjects[i].hasOwnProperty("pointNumbers");
+        hasNestedPointObjects && pointObjects[i].hasOwnProperty("pointNumbers");
       if (!hasNestedPointObjects) break;
     }
     var numPointNumbers = numPoints;
@@ -93,15 +131,17 @@ function buildPointsObject(data) {
 
       let single_trace = true;
       for (let i = 1; i < numPointNumbers; i++) {
-        single_trace = single_trace && (pointsObject["trace_indexes"][i - 1] === pointsObject["trace_indexes"][i])
+        single_trace =
+          single_trace &&
+          pointsObject["trace_indexes"][i - 1] ===
+            pointsObject["trace_indexes"][i];
         if (!single_trace) break;
       }
       if (single_trace) {
-        pointsObject["point_indexes"].sort((function (a, b) {
-          return a - b
-        }))
+        pointsObject["point_indexes"].sort(function (a, b) {
+          return a - b;
+        });
       }
-
     } else {
       for (var p = 0; p < numPoints; p++) {
         pointsObject["trace_indexes"][p] = pointObjects[p]["curveNumber"];
@@ -159,7 +199,7 @@ function buildInputDeviceStateObject(data) {
  * @param data
  * @returns {null|Selector}
  */
-function buildSelectorObject(data){
+function buildSelectorObject(data) {
   var selectorObject;
 
   if (data.hasOwnProperty("range")) {
