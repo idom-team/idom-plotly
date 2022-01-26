@@ -1,5 +1,5 @@
 # the version is statically loaded by setup.py
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 from .component import Plot, PropsDict, FigureDict, EventHandlersDict
 
